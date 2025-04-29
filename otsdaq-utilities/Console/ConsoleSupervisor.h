@@ -28,6 +28,9 @@ class ConsoleSupervisor : public CoreSupervisorBase
 		std::string 				action; /* action */
 		size_t						triggeredMessageCountIndex = -1; /* message arrival count that fired the trigger */
 		size_t						occurrences = 0;
+		size_t					    triggerOnCount = 1; /* number of times event occurs before triggering action */
+		size_t 						doLoop = 0; /* Wether to keep triggering on further occurrences */
+
 	}; //end CustomTriggeredAction_t struct
 
 
@@ -62,8 +65,18 @@ class ConsoleSupervisor : public CoreSupervisorBase
 	void 						insertMessageRefresh				(HttpXmlDocument* xmldoc, const size_t lastUpdateCount);
 	void 						prependHistoricMessages				(HttpXmlDocument* xmlOut, const size_t earliestOnhandMessageCount);
 
-	void 						addCustomTriggeredAction			(const std::string& triggerNeedle, const std::string& triggerAction, uint32_t priority = -1);
-	uint32_t					modifyCustomTriggeredAction			(const std::string& currentNeedle, const std::string& modifyType, const std::string& setNeedle, const std::string& setAction, uint32_t setPriority);
+	void 						addCustomTriggeredAction			(const std::string& triggerNeedle,
+																	 const std::string& triggerAction,
+																	 uint32_t priority = -1,
+																	 uint32_t triggerOnCount = 1,
+																	 bool doLoop = false);
+	uint32_t					modifyCustomTriggeredAction			(const std::string& currentNeedle,
+																	 const std::string& modifyType,
+																	 const std::string& setNeedle,
+																	 const std::string& setAction,
+																	 uint32_t setPriority,
+																	 uint32_t setTriggerOnCount,
+																	 bool setDoLoop);
 
 	void						loadCustomCountList					(void);
 	void						saveCustomCountList					(void);

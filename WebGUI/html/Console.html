@@ -2141,6 +2141,29 @@
 							});
 					str += "</input>";
 
+					// TODO: Add fields for triggerOnCount and doLoop here
+
+					str += "triggered after: "
+					str += DesktopContent.htmlOpen("input",
+							{
+									"id" 	: 	"ac_customTriggerOnCountEntry",
+									"value" :   "1",
+									"style" : 	"margin: 4px 10px 3px -2px; width: 50px;",
+									// "onchange":	"_traceHostSelect.mode = this.selectedIndex;"
+							});
+					str += "</input>";
+
+					str += "looping: ";
+					str += DesktopContent.htmlOpen("input",
+							{
+									"type" : 	"checkbox",
+									"id" 	: 	"ac_customLoopEntry",
+									"value" :   "false",
+									"style" : 	"margin: 4px 10px 3px -2px; width: 50px;",
+									// "onchange":	"_traceHostSelect.mode = this.selectedIndex;"
+							});
+					str += "</input>";
+
 					var options = ["Count Only", "System Message", "Pause FSM + System Message", "Stop FSM + System Message", "Halt FSM + System Message"];
 					str += "with action: ";
 					str += DesktopContent.htmlOpen("select",
@@ -3139,6 +3162,13 @@
 
 			//=====================================================================================
 			function advancedPresetSelect(preset)
+			// Valid presets:
+			// - Priority
+			// - Action
+			// - Search String
+			// - Deletion
+			// - Trigger on Count
+			// - Do Loop
 			{
 				Debug.log("advancedPresetSelect",preset);
 
@@ -3180,6 +3210,29 @@
 								{
 										"id" 	: 	"ac_modifyCustomCountEntry",
 										// "style" : 	"margin: 5px 6px 3px -2px;",
+										// "onchange":	"_traceHostSelect.mode = this.selectedIndex;"
+								});
+						str += "</input>";
+					}
+					else if(preset == "Trigger on Count")
+					{
+						str += DesktopContent.htmlOpen("input",
+								{
+										"id" 	: 	"ac_modifyCustomTriggerOnCountEntry",
+										"value"	: 	"1",
+										"style" : 	"width: 50px;",
+										// "onchange":	"_traceHostSelect.mode = this.selectedIndex;"
+								});
+						str += "</input>";
+					}
+					else if(preset == "Do Loop")
+					{
+						str += DesktopContent.htmlOpen("input",
+								{
+										"type"	: 	"checkbox",
+										"id" 	: 	"ac_modifyCustomDoLoopEntry",
+										"value"	: 	"1",
+										"style" : 	"width: 50px;",
 										// "onchange":	"_traceHostSelect.mode = this.selectedIndex;"
 								});
 						str += "</input>";
@@ -3416,11 +3469,13 @@
 
 			//=====================================================================================
 			// if param == "onlyCounts" then only update counts
-			var ac_cc_COL_NAMES = ["Select","Needle","Count","Action","Priority"];
+			var ac_cc_COL_NAMES = ["Select","Needle","Count","TriggerOnCount","Loop","Action","Priority"];
 			var ac_cc_COL_NAMES_Select = ac_cc_COL_NAMES.indexOf("Select"),
 				ac_cc_COL_NAMES_Priority = ac_cc_COL_NAMES.indexOf("Priority"),
 				ac_cc_COL_NAMES_Needle = ac_cc_COL_NAMES.indexOf("Needle"),
 				ac_cc_COL_NAMES_Count = ac_cc_COL_NAMES.indexOf("Count"),
+				ac_cc_COL_NAMES_TriggerOnCount = ac_cc_COL_NAMES.indexOf("TriggerOnCount"),
+				ac_cc_COL_NAMES_Loop = ac_cc_COL_NAMES.indexOf("Loop"),
 				ac_cc_COL_NAMES_Action = ac_cc_COL_NAMES.indexOf("Action");
 			var ac_cc_COL_DISPLAY_NAMES = [
 					DesktopContent.htmlOpen("input",
@@ -3430,7 +3485,11 @@
 									"onclick" : "advancedToggleAllCheckboxes(this.checked);",
 									"title" : 	"Toggle selecting/deselecting all custom needles in the list to delete or change action.",
 							},"",true),
-							"Search String","Server-side Count","Action",
+							"Search String",
+							"Server-side Count",
+							"Trigger On Count",
+							"Loop?",
+							"Action",
 							"Priority"];
 			function handleAdvancedGetCustomCountsAndActions(req, param, errStr)
 			{
@@ -3485,6 +3544,8 @@
 				{
 					var needle = DesktopContent.getXMLValue(customCountList[a],"needle");
 					var count = DesktopContent.getXMLValue(customCountList[a],"count");
+					var triggerOnCount = DesktopContent.getXMLValue(customCountList[a],"triggerOnCount");
+					var doLoop = DesktopContent.getXMLValue(customCountList[a],"doLoop");
 					var action = DesktopContent.getXMLValue(customCountList[a],"action");
 
 					//Note: A valid class name should start with an underscore (_), a hyphen (-) or a letter (a-z)/(A-Z) which is followed by any numbers, hyphens, underscores, letters.
@@ -3538,6 +3599,22 @@
 							str += "<div style='margin-right:50px;' id='count" + safeNeedle + "'>";
 							str += count + " occurrences";
 							str += "</div>";
+						}
+						else if(i == ac_cc_COL_NAMES_TriggerOnCount)
+						{
+							str += "<div style='margin-right:50px;' id='triggerOnCount" + safeNeedle + "'>";
+							str += triggerOnCount + " occurrences";
+							str += "</div>";
+						}
+						else if(i == ac_cc_COL_NAMES_Loop)
+						{ 
+							str += "<div style='margin-right:50px;'>";
+							str += "<input type='radio' class='ac_checkboxSelect' onclick='setLoopingAction();' disabled";
+							if(doLoop == "1") //keep checked rows
+								str += "checked";
+							str += " />";
+							str += "</div>";
+
 						}
 						else if(i == ac_cc_COL_NAMES_Action) //Action
 						{
@@ -3630,8 +3707,10 @@
 				var needle = document.getElementById("ac_customCountEntry").value.trim();
 				var priority = document.getElementById("ac_customPriorityEntry").value.trim();
 				var action = document.getElementById("ac_customActionSelect").value;
+				var triggerOnCount = document.getElementById("ac_customTriggerOnCountEntry").value.trim();
+				var doLoop = document.getElementById("ac_customLoopEntry").checked;
 
-				Debug.log("Adding Custom Count & Action",needle,priority,action);
+				Debug.log("Adding Custom Count & Action",needle,priority,action,triggerOnCount,doLoop);
 
 				//translate action for server
 				if(action == "Pause FSM + System Message") action = "Pause";
@@ -3642,7 +3721,9 @@
 						"Request?RequestType=AddCustomCountsAndAction",
 						"needle=" + encodeURIComponent(needle) +
 						"&priority=" + (priority|0) +
-						"&action=" + encodeURIComponent(action),
+						"&action=" + encodeURIComponent(action) +
+						"&triggerOnCount=" + (triggerOnCount|0) +
+						"&doLoop=" + (doLoop?"1":"0"),
 						handleAdvancedGetCustomCountsAndActions,  //end add custom count request
 						undefined, 0, 1); //reqParam, progressHandler, callHandlerOnErr
 
@@ -3714,6 +3795,17 @@
 				{
 					var needle = document.getElementById("ac_modifyCustomCountEntry").value.trim();
 					postParam += "&needle=" + encodeURIComponent(needle);
+				}
+				else if(buttonDo == "Trigger on Count")
+				{
+					var triggerOnCount = document.getElementById("ac_modifyCustomTriggerOnCountEntry").value.trim();
+
+					postParam += "&triggerOnCount=" + (triggerOnCount|0);
+				}
+				else if(buttonDo == "Do Loop")
+				{
+					var doLoop = document.getElementById("ac_modifyCustomDoLoopEntry").checked;
+					postParam += "&doLoop=" + (doLoop?"1":"0");
 				}
 
 				DesktopContent.XMLHttpRequest(
